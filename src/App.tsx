@@ -1,0 +1,43 @@
+import { useState } from 'react'
+import { MiniBar } from './components/MiniBar'
+import { TasksView } from './views/TasksView'
+import { BankView } from './views/BankView'
+import { HistoryView } from './views/HistoryView'
+
+type Tab = 'tasks' | 'bank' | 'history'
+
+const tabs: { id: Tab; label: string; icon: string }[] = [
+  { id: 'tasks', label: 'Tasks', icon: '✓' },
+  { id: 'bank', label: 'Bank', icon: '🏦' },
+  { id: 'history', label: 'History', icon: '📊' },
+]
+
+export function App() {
+  const [tab, setTab] = useState<Tab>('tasks')
+
+  return (
+    <div className="app">
+      <nav className="bottom-nav">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            className={tab === t.id ? 'active' : ''}
+            onClick={() => setTab(t.id)}
+          >
+            <span className="ico">{t.icon}</span>
+            {t.label}
+          </button>
+        ))}
+      </nav>
+
+      <div className="main-col">
+        <MiniBar />
+        <main className="content">
+          {tab === 'tasks' && <TasksView />}
+          {tab === 'bank' && <BankView />}
+          {tab === 'history' && <HistoryView />}
+        </main>
+      </div>
+    </div>
+  )
+}
