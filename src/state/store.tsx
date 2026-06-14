@@ -63,6 +63,9 @@ function SyncManager({
   const versionRef = useRef(0)
   const hydratedRef = useRef(false)
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Keep a ref to the latest state for event-driven (reconnect) syncs.
+  const stateRef = useRef(state)
+  stateRef.current = state
 
   // Pull authoritative state when a token appears.
   useEffect(() => {
@@ -82,6 +85,23 @@ function SyncManager({
       cancelled = true
     }
   }, [token, dispatch])
+
+  // When the connection returns, flush the latest local state to the server
+  // so edits made offline are synced (PRD §5.4 offline queue).
+  useEffect(() => {
+    if (!token) return
+    const onReconnect = async () => {
+      if (!hydratedRef.current) return
+      try {
+        const { version } = await api.putState(token, stateRef.current, versionRef.current)
+        versionRef.current = version
+      } catch (err) {
+        console.error('Reconnect sync failed', err)
+      }
+    }
+    window.addEventListener('online', onReconnect)
+    return () => window.removeEventListener('online', onReconnect)
+  }, [token])
 
   // Push debounced after local changes (only once hydrated, to avoid clobbering).
   useEffect(() => {

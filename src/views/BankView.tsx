@@ -10,12 +10,16 @@ import {
 } from '../state/selectors'
 import { requestNotificationPermission } from '../utils/notify'
 import { useAuth } from '../state/auth'
+import { useOnline } from '../utils/useOnline'
 
 const QUICK = [5, 10, 25]
 
 export function BankView() {
   const { state, dispatch } = useStore()
   const { backendConfigured, username, logout } = useAuth()
+  const online = useOnline()
+  // Defer bank transactions while offline to prevent cross-device desync (PRD §5.4).
+  const bankLocked = backendConfigured && !online
   const onBreak = Boolean(activeBreak(state))
   const earned = earnedTodayMins(state)
   const spent = spentTodayMins(state)
@@ -25,7 +29,7 @@ export function BankView() {
   const [resetArmed, setResetArmed] = useState(false)
 
   const startBreak = async (mins: number) => {
-    if (mins <= 0 || mins > state.balanceMins) return
+    if (mins <= 0 || mins > state.balanceMins || bankLocked) return
     await requestNotificationPermission()
     dispatch({ type: 'START_BREAK', requestedMins: mins })
   }
@@ -60,6 +64,13 @@ export function BankView() {
 
       {onBreak ? (
         <BreakTimer />
+      ) : bankLocked ? (
+        <div className="card">
+          <div className="hint">
+            You're offline. Starting a break is paused until you reconnect, so your
+            bank balance stays in sync across devices.
+          </div>
+        </div>
       ) : state.balanceMins > 0 ? (
         <div className="card">
           <div className="section-label" style={{ margin: '0 0 10px' }}>

@@ -3,6 +3,8 @@ import { MiniBar } from './components/MiniBar'
 import { TasksView } from './views/TasksView'
 import { BankView } from './views/BankView'
 import { HistoryView } from './views/HistoryView'
+import { useOnline } from './utils/useOnline'
+import { useAuth } from './state/auth'
 
 type Tab = 'tasks' | 'bank' | 'history'
 
@@ -14,6 +16,8 @@ const tabs: { id: Tab; label: string; icon: string }[] = [
 
 export function App() {
   const [tab, setTab] = useState<Tab>('tasks')
+  const online = useOnline()
+  const { backendConfigured } = useAuth()
 
   return (
     <div className="app">
@@ -32,6 +36,11 @@ export function App() {
 
       <div className="main-col">
         <MiniBar />
+        {backendConfigured && !online && (
+          <div className="offline-banner">
+            ⚠ Offline — changes are saved locally and will sync when you reconnect.
+          </div>
+        )}
         <main className="content">
           {tab === 'tasks' && <TasksView />}
           {tab === 'bank' && <BankView />}
