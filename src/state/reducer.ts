@@ -20,6 +20,7 @@ export interface NewTaskInput {
 }
 
 export type Action =
+  | { type: 'HYDRATE'; state: AppState }
   | { type: 'ADD_TASK'; input: NewTaskInput }
   | { type: 'UPDATE_TASK'; id: string; patch: Partial<NewTaskInput> }
   | { type: 'DELETE_TASK'; id: string }
@@ -69,6 +70,10 @@ function credit(
 
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
+    case 'HYDRATE':
+      // Replace local state with an authoritative snapshot (e.g. from the server).
+      return action.state
+
     case 'ADD_TASK': {
       const task: Task = {
         id: uid(),

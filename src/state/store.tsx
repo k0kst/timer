@@ -7,11 +7,14 @@ import {
   useContext,
   useEffect,
   useReducer,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
 import { reducer, type Action } from './reducer'
 import { loadState, saveState } from '../storage/localStore'
+import { api, ApiError } from '../api/client'
+import { useAuth } from './auth'
 import type { AppState } from '../types'
 
 interface StoreContextValue {
@@ -38,9 +41,73 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   return (
     <StoreContext.Provider value={{ state, dispatch }}>
+      <SyncManager state={state} dispatch={dispatch} />
       <TickProvider>{children}</TickProvider>
     </StoreContext.Provider>
   )
+}
+
+/**
+ * Bridges local state with the backend when a user is signed in:
+ * pulls the authoritative snapshot on login, then pushes (debounced)
+ * on every change with optimistic last-write-wins (PRD §5.2).
+ */
+function SyncManager({
+  state,
+  dispatch,
+}: {
+  state: AppState
+  dispatch: React.Dispatch<Action>
+}) {
+  const { token } = useAuth()
+  const versionRef = useRef(0)
+  const hydratedRef = useRef(false)
+  const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Pull authoritative state when a token appears.
+  useEffect(() => {
+    hydratedRef.current = false
+    if (!token) return
+    let cancelled = false
+    api
+      .getState(token)
+      .then(({ state: remote, version }) => {
+        if (cancelled) return
+        versionRef.current = version
+        if (remote && remote.tasks) dispatch({ type: 'HYDRATE', state: remote })
+        hydratedRef.current = true
+      })
+      .catch((err) => console.error('State pull failed', err))
+    return () => {
+      cancelled = true
+    }
+  }, [token, dispatch])
+
+  // Push debounced after local changes (only once hydrated, to avoid clobbering).
+  useEffect(() => {
+    if (!token || !hydratedRef.current) return
+    if (pushTimer.current) clearTimeout(pushTimer.current)
+    pushTimer.current = setTimeout(async () => {
+      try {
+        const { version } = await api.putState(token, state, versionRef.current)
+        versionRef.current = version
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 409) {
+          // Server moved ahead — re-pull and adopt it.
+          const { state: remote, version } = await api.getState(token)
+          versionRef.current = version
+          if (remote && remote.tasks) dispatch({ type: 'HYDRATE', state: remote })
+        } else {
+          console.error('State push failed', err)
+        }
+      }
+    }, 800)
+    return () => {
+      if (pushTimer.current) clearTimeout(pushTimer.current)
+    }
+  }, [state, token, dispatch])
+
+  return null
 }
 
 function TickProvider({ children }: { children: ReactNode }) {

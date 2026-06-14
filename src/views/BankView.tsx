@@ -9,11 +9,13 @@ import {
   activeBreak,
 } from '../state/selectors'
 import { requestNotificationPermission } from '../utils/notify'
+import { useAuth } from '../state/auth'
 
 const QUICK = [5, 10, 25]
 
 export function BankView() {
   const { state, dispatch } = useStore()
+  const { backendConfigured, username, logout } = useAuth()
   const onBreak = Boolean(activeBreak(state))
   const earned = earnedTodayMins(state)
   const spent = spentTodayMins(state)
@@ -141,6 +143,18 @@ export function BankView() {
           </div>
         )}
       </div>
+
+      {backendConfigured && (
+        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600 }}>Signed in as {username}</div>
+            <div className="hint">Synced across your devices.</div>
+          </div>
+          <button className="btn ghost small" onClick={logout}>
+            Sign out
+          </button>
+        </div>
+      )}
     </>
   )
 }
