@@ -19,6 +19,7 @@ export function TasksView() {
   const [filter, setFilter] = useState<Filter>('all')
   const [sort, setSort] = useState<Sort>('manual')
   const [adding, setAdding] = useState(false)
+  const [dragId, setDragId] = useState<string | null>(null)
 
   const visible = useMemo(() => {
     // Archived tasks live in History, never on the active list.
@@ -32,6 +33,19 @@ export function TasksView() {
     else if (sort === 'date') sorted.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
     return sorted
   }, [state.tasks, filter, sort])
+
+  // Drag-and-drop reorder, only meaningful in manual order (PRD §4.1.5).
+  const canDrag = sort === 'manual'
+  const onDrop = (targetId: string) => {
+    if (!dragId || dragId === targetId) return setDragId(null)
+    const ids = visible.map((t) => t.id)
+    const from = ids.indexOf(dragId)
+    const to = ids.indexOf(targetId)
+    if (from < 0 || to < 0) return setDragId(null)
+    ids.splice(to, 0, ids.splice(from, 1)[0])
+    dispatch({ type: 'REORDER_TASKS', order: ids })
+    setDragId(null)
+  }
 
   return (
     <>
@@ -60,7 +74,18 @@ export function TasksView() {
           <div>Tap + to add your first task and set its bounty.</div>
         </div>
       ) : (
-        visible.map((task) => <TaskCard key={task.id} task={task} />)
+        visible.map((task) => (
+          <div
+            key={task.id}
+            draggable={canDrag}
+            onDragStart={() => setDragId(task.id)}
+            onDragOver={(e) => canDrag && e.preventDefault()}
+            onDrop={() => onDrop(task.id)}
+            className={dragId === task.id ? 'dragging' : ''}
+          >
+            <TaskCard task={task} />
+          </div>
+        ))
       )}
 
       <button className="quick-add" aria-label="Add task" onClick={() => setAdding(true)}>

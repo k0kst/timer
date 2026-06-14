@@ -531,6 +531,31 @@ select {
   margin-bottom: 6px;
 }
 
+/* ---- Onboarding dots & drag ---- */
+.dots {
+  display: flex;
+  gap: 7px;
+  justify-content: center;
+}
+
+.dots .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--line);
+  transition: background 0.2s ease, width 0.2s ease;
+}
+
+.dots .dot.active {
+  background: var(--teal);
+  width: 20px;
+  border-radius: 4px;
+}
+
+.dragging {
+  opacity: 0.5;
+}
+
 /* ---- History / analytics ---- */
 .summary-grid {
   display: grid;

@@ -3,6 +3,7 @@ import { MiniBar } from './components/MiniBar'
 import { TasksView } from './views/TasksView'
 import { BankView } from './views/BankView'
 import { HistoryView } from './views/HistoryView'
+import { Onboarding, hasOnboarded } from './components/Onboarding'
 import { useOnline } from './utils/useOnline'
 import { useAuth } from './state/auth'
 
@@ -16,6 +17,7 @@ const tabs: { id: Tab; label: string; icon: string }[] = [
 
 export function App() {
   const [tab, setTab] = useState<Tab>('tasks')
+  const [onboarding, setOnboarding] = useState(() => !hasOnboarded())
   const online = useOnline()
   const { backendConfigured } = useAuth()
 
@@ -47,6 +49,8 @@ export function App() {
           {tab === 'history' && <HistoryView />}
         </main>
       </div>
+
+      {onboarding && <Onboarding onClose={() => setOnboarding(false)} />}
     </div>
   )
 }

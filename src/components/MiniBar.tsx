@@ -1,5 +1,6 @@
 import { useStore, useTick } from '../state/store'
 import { formatHMS, formatBankMins, liveElapsedSeconds } from '../utils/time'
+import { AnimatedNumber } from './AnimatedNumber'
 
 /** Persistent header showing the active task timer and the bank balance (PRD §6.1). */
 export function MiniBar() {
@@ -26,7 +27,7 @@ export function MiniBar() {
         )}
       </div>
       <div className="bank-chip" title="Break Bank balance">
-        🏦 {formatBankMins(state.balanceMins)}
+        🏦 <AnimatedNumber value={state.balanceMins} format={formatBankMins} />
       </div>
     </header>
   )

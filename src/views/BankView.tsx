@@ -11,6 +11,7 @@ import {
 import { requestNotificationPermission } from '../utils/notify'
 import { useAuth } from '../state/auth'
 import { useOnline } from '../utils/useOnline'
+import { AnimatedNumber } from '../components/AnimatedNumber'
 
 const QUICK = [5, 10, 25]
 
@@ -42,7 +43,9 @@ export function BankView() {
 
       <div className="card bank-balance">
         <div className="bank-balance-label">Available break time</div>
-        <div className="bank-balance-amount">{formatBankMins(state.balanceMins)}</div>
+        <div className="bank-balance-amount">
+          <AnimatedNumber value={state.balanceMins} format={formatBankMins} />
+        </div>
         {last && (
           <div className="bank-recent">
             {last.type === 'credit' && `+${formatDuration(last.amountMins)} — ${last.note}`}
