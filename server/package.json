@@ -6,6 +6,7 @@
   "description": "BountyTimer API — auth + cross-device state sync",
   "main": "src/index.js",
   "scripts": {
+    "prestart": "node src/migrate.js",
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "migrate": "node src/migrate.js"

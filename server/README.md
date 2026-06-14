@@ -43,6 +43,12 @@ npm start                   # http://localhost:4000
 ## Deploy (ACTION REQUIRED — see repo root SETUP.md)
 
 1. Provision Postgres (Supabase free tier recommended).
-2. Deploy this folder to Railway or Render; set `DATABASE_URL`, `JWT_SECRET`.
-3. Run `npm run migrate` once against the prod DB.
-4. Set `VITE_API_URL` in the frontend to the deployed API origin.
+2. Deploy via the **Render Blueprint** (`render.yaml` at the repo root):
+   New → Blueprint → pick this repo. `JWT_SECRET` is auto-generated; paste your
+   `DATABASE_URL` when prompted.
+3. Set `VITE_API_URL` in the frontend to the deployed API origin.
+
+The schema is applied automatically on every boot via the `prestart` script
+(idempotent `CREATE ... IF NOT EXISTS`), so **no manual migrate / Shell step is
+required** — important since Render's free tier has no Shell. To migrate by hand
+against any database you can still run `npm run migrate`.

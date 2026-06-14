@@ -38,12 +38,15 @@ These need your accounts/credentials and external dashboards:
 
 1. **Provision a database.** Create a free Supabase project (or any Postgres).
    Copy its connection string.
-2. **Deploy the API.** Push `server/` to Railway or Render. Set env vars
-   `DATABASE_URL` and a strong random `JWT_SECRET`. Run `npm run migrate` once.
-3. **Deploy the frontend.** Connect this repo to Vercel. Set
-   `VITE_API_URL` to your deployed API origin.
-4. **Generate PWA icons.** Replace the placeholder icons in `public/` with real
-   192px and 512px PNGs (see M4 / `public/README.md`).
+2. **Deploy the API.** In Render: **New → Blueprint → pick this repo** (uses
+   `render.yaml`). It sets the service up automatically, **generates
+   `JWT_SECRET` for you**, and prompts you to paste the `DATABASE_URL` from
+   step 1. The database schema is applied **automatically on boot** — no Shell
+   access or manual migrate step is needed (Render's free tier has no Shell).
+3. **Deploy the frontend.** Import this repo into Vercel (it auto-detects Vite).
+   Add one Environment Variable: `VITE_API_URL` = your deployed API origin.
+4. **(Optional) Replace PWA icons.** Swap the generated placeholder PNGs in
+   `public/` for branded art, or run `npm run icons` to regenerate.
 5. **(Optional) Email recovery.** Wire an email provider if you want password
    reset; the schema already reserves an optional `email` field.
 
