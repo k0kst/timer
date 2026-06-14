@@ -420,6 +420,104 @@ select {
   flex: 1;
 }
 
+/* ---- Break Bank ---- */
+.bank-balance {
+  text-align: center;
+  padding: 22px 16px;
+}
+
+.bank-balance-label {
+  font-size: 13px;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.bank-balance-amount {
+  font-size: 52px;
+  font-weight: 800;
+  color: var(--teal);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  margin: 6px 0;
+}
+
+.bank-recent {
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+
+.bank-today {
+  display: flex;
+  justify-content: center;
+  gap: 36px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.bank-today .up {
+  color: var(--green);
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.bank-today .down {
+  color: var(--amber);
+  font-weight: 700;
+  font-size: 17px;
+}
+
+/* ---- Break countdown clock ---- */
+.break-timer {
+  text-align: center;
+  padding: 22px;
+}
+
+.clock-face {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin: 0 auto;
+}
+
+.clock-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 8;
+}
+
+.clock-progress {
+  fill: none;
+  stroke: var(--teal);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.9s linear;
+}
+
+.clock-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.clock-time {
+  font-size: 32px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.clock-sub {
+  font-size: 12px;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
 /* ---- Empty states ---- */
 .empty {
   text-align: center;
