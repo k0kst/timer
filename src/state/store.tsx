@@ -33,9 +33,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     saveState(state)
   }, [state])
 
-  // Archive yesterday's completed tasks once on load (PRD §4.1.2).
+  // On load: re-arm recurring tasks / archive yesterday's one-offs (PRD §4.1.2)
+  // and top the Break Bank back up to its daily starting balance.
   useEffect(() => {
     dispatch({ type: 'ARCHIVE_OLD' })
+    dispatch({ type: 'DAILY_RESET' })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

@@ -132,6 +132,30 @@ select {
   padding: 18px 16px 96px;
 }
 
+/* Home combines the task list + bank side by side, so it needs more room. */
+.content.wide {
+  max-width: 1140px;
+}
+
+/* Tasks on the left, Break Bank + break timer on the right. */
+.home-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 860px) {
+  .home-grid {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    align-items: start;
+  }
+  /* Keep the bank/timer in view while scrolling a long task list. */
+  .home-bank {
+    position: sticky;
+    top: 78px;
+  }
+}
+
 .view-title {
   font-size: 22px;
   font-weight: 700;

@@ -4,6 +4,11 @@
 
 export type Priority = 'high' | 'medium' | 'low' | 'none'
 
+// How often a task recurs. 'once' is a normal one-off task; the recurring
+// values re-arm the task at the start of each new period so it reappears on
+// the active list (the completed instance is kept in History).
+export type Frequency = 'once' | 'daily' | 'weekly' | 'monthly'
+
 export type TaskStatus =
   | 'not_started'
   | 'in_progress'
@@ -17,6 +22,7 @@ export interface Task {
   estimatedMins: number
   bountyMins: number
   priority: Priority
+  frequency: Frequency
   notes: string
   status: TaskStatus
   createdAt: string // ISO timestamp
@@ -59,7 +65,13 @@ export interface AppState {
   balanceMins: number // cached balance, derived from transactions
   // The id of an in-progress break, if any (M2). Null when no break is active.
   activeBreakId: string | null
+  // ISO timestamp of the last daily bank reset, or null if it has never run.
+  // Used to top the bank back up to DAILY_START_MINS once per calendar day.
+  lastDailyResetAt: string | null
 }
 
 export const MAX_SESSION_SECONDS = 8 * 60 * 60 // 8 hours (PRD §4.3)
 export const TITLE_MAX = 120
+
+// Each new day the Break Bank resets to this starting balance of rest time.
+export const DAILY_START_MINS = 60
