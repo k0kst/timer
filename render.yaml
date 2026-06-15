@@ -1,0 +1,18 @@
+# Render Blueprint — one-click backend deploy.
+# In Render: New → Blueprint → pick this repo. It configures the API service,
+# auto-generates JWT_SECRET, and prompts for DATABASE_URL. The schema is applied
+# automatically on boot (npm "prestart"), so no Shell access is needed.
+services:
+  - type: web
+    name: bountytimer-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false # you paste your Supabase connection string when prompted
+      - key: JWT_SECRET
+        generateValue: true # Render generates a strong secret automatically
