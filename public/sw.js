@@ -7,8 +7,10 @@
 //  - API requests (cross-origin): never cached — they go straight to the
 //    network; the app's own sync layer queues writes while offline.
 
+// Paths are relative to the worker's own URL so the cache works whether the
+// app is served from the domain root or a subpath (e.g. GitHub Pages).
 const CACHE = 'bountytimer-v1'
-const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png']
+const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -36,7 +38,7 @@ self.addEventListener('fetch', (event) => {
   // Navigations: network-first with offline shell fallback.
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(() => caches.match('/index.html').then((r) => r || Response.error())),
+      fetch(request).catch(() => caches.match('./index.html').then((r) => r || Response.error())),
     )
     return
   }
