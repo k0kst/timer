@@ -20,6 +20,31 @@ npm run preview      # serve the production build locally
 No environment variables, database, or server are required. To deploy, host the
 static `dist/` output on any static host (Vercel, Netlify, GitHub Pages, S3, …).
 
+### Deploy to GitHub Pages
+
+A project site is served from a subpath (`https://<user>.github.io/<repo>/`),
+so the build must use that subpath as its base — otherwise the page loads blank
+because the asset URLs 404. This repo handles that for you:
+
+1. In the repo, go to **Settings → Pages → Build and deployment** and set
+   **Source = "GitHub Actions"**.
+2. Push to `main`. The included workflow
+   (`.github/workflows/deploy-pages.yml`) builds with
+   `VITE_BASE=/<repo>/` (auto-derived from the repo name) and publishes `dist/`.
+
+That's it — no manual base configuration needed.
+
+**Building for Pages by hand** (if you don't use the workflow): pass the base
+explicitly, where `<repo>` is your repository name:
+
+```bash
+VITE_BASE=/<repo>/ npm run build
+```
+
+For a root deployment instead (Vercel, Netlify, a custom domain, or a
+`<user>.github.io` *user* site), leave `VITE_BASE` unset — the default base is
+`/`.
+
 Everything below is **only** needed if you want optional cross-device sync.
 
 ## Optional: enable cross-device sync
