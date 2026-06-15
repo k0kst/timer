@@ -20,30 +20,39 @@ npm run preview      # serve the production build locally
 No environment variables, database, or server are required. To deploy, host the
 static `dist/` output on any static host (Vercel, Netlify, GitHub Pages, S3, …).
 
-### Deploy to GitHub Pages
+### Deploy to GitHub Pages (branch / `docs/` folder)
 
-A project site is served from a subpath (`https://<user>.github.io/<repo>/`),
-so the build must use that subpath as its base — otherwise the page loads blank
-because the asset URLs 404. This repo handles that for you:
+GitHub Pages serves files **as-is with no build step**, but this is a compiled
+app — so the *built* output (not the source) must be committed and served. A
+project site is also served from a subpath (`https://<user>.github.io/<repo>/`),
+so the build must use that subpath as its base or every asset 404s and the page
+loads blank. The prebuilt site lives in [`docs/`](./docs) for exactly this.
 
-1. In the repo, go to **Settings → Pages → Build and deployment** and set
-   **Source = "GitHub Actions"**.
-2. Push to `main`. The included workflow
-   (`.github/workflows/deploy-pages.yml`) builds with
-   `VITE_BASE=/<repo>/` (auto-derived from the repo name) and publishes `dist/`.
+**To deploy / redeploy:**
 
-That's it — no manual base configuration needed.
+1. Rebuild the `docs/` folder (bakes in the `/timer/` base, copies the static
+   output, adds `.nojekyll` and an SPA `404.html`):
 
-**Building for Pages by hand** (if you don't use the workflow): pass the base
-explicitly, where `<repo>` is your repository name:
+   ```bash
+   npm run build:pages
+   ```
 
-```bash
-VITE_BASE=/<repo>/ npm run build
-```
+   > Note: the base `/timer/` is hard-coded in this script to match the repo
+   > name. If you rename the repo, update it (and the `start_url` is already
+   > relative, so it needs no change).
 
-For a root deployment instead (Vercel, Netlify, a custom domain, or a
-`<user>.github.io` *user* site), leave `VITE_BASE` unset — the default base is
-`/`.
+2. Commit and push `docs/` to `main`.
+
+3. One-time setup: in the repo, go to **Settings → Pages → Build and
+   deployment**, set **Source = "Deploy from a branch"**, then choose
+   **Branch = `main`** and **Folder = `/docs`**, and Save.
+
+Pages publishes the contents of `docs/` at `https://<user>.github.io/<repo>/`.
+No GitHub Actions required.
+
+**Deploying to a root host instead** (Vercel, Netlify, a custom domain, or a
+`<user>.github.io` *user* site): just run `npm run build` and serve `dist/` —
+the default base is `/`.
 
 Everything below is **only** needed if you want optional cross-device sync.
 
