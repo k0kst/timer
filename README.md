@@ -10,6 +10,18 @@ time.
 
 Built from [`BountyTimer-PRD.md`](./BountyTimer-PRD.md).
 
+## Runs entirely in your browser
+
+By default BountyTimer is a **browser-only** app — there is no backend to run
+and nothing to sign into. All your tasks, Break Bank balance, and history live
+in the browser's `localStorage` (key `bountytimer:v1`) and persist between
+sessions on that device. Clearing the browser's site data resets the app.
+
+Because storage is per-device, data is **not** transferred between devices in
+this mode. A fully optional sync backend exists for that — see
+[Optional cross-device sync](#optional-cross-device-sync) — but it is off
+unless you explicitly configure it.
+
 ## Stack
 
 - **Frontend:** React + TypeScript + Vite, installable PWA (service worker +
@@ -22,13 +34,22 @@ Built from [`BountyTimer-PRD.md`](./BountyTimer-PRD.md).
 
 ```bash
 npm install
-npm run dev          # http://localhost:5173  (local-only mode)
+npm run dev          # http://localhost:5173  (browser-only, no backend)
 npm run build        # production build
+npm run preview      # serve the production build locally
 npm run icons        # regenerate PWA icons
 ```
 
-For cross-device sync and deployment, see [`SETUP.md`](./SETUP.md) and
-[`server/README.md`](./server/README.md).
+The `dist/` output is fully static — host it on any static file server (or open
+it as a PWA) and it works with no API.
+
+## Optional cross-device sync
+
+Browser-only is the default and needs no setup. If you later want the same data
+on multiple devices, point the app at a deployed backend by setting
+`VITE_API_URL`; the app then gates behind sign-in and syncs per user. See
+[`SETUP.md`](./SETUP.md) and [`server/README.md`](./server/README.md). Leaving
+`VITE_API_URL` unset keeps everything local.
 
 ## Features (by milestone)
 
