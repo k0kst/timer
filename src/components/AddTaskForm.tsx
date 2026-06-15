@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Modal } from './Modal'
-import { TITLE_MAX, type Priority, type Task } from '../types'
+import { TITLE_MAX, type Frequency, type Priority, type Task } from '../types'
 import type { NewTaskInput } from '../state/reducer'
 
 interface AddTaskFormProps {
@@ -23,6 +23,7 @@ export function AddTaskForm({ initial, onSubmit, onClose }: AddTaskFormProps) {
   const [estValue, setEstValue] = useState(String(est.value))
   const [estUnit, setEstUnit] = useState<Unit>(est.unit)
   const [priority, setPriority] = useState<Priority>(initial?.priority ?? 'none')
+  const [frequency, setFrequency] = useState<Frequency>(initial?.frequency ?? 'once')
   const [notes, setNotes] = useState(initial?.notes ?? '')
   const [showNotes, setShowNotes] = useState(Boolean(initial?.notes))
 
@@ -46,7 +47,7 @@ export function AddTaskForm({ initial, onSubmit, onClose }: AddTaskFormProps) {
 
   const submit = () => {
     if (!canSubmit) return
-    onSubmit({ title, estimatedMins, bountyMins, priority, notes: showNotes ? notes : '' })
+    onSubmit({ title, estimatedMins, bountyMins, priority, frequency, notes: showNotes ? notes : '' })
     onClose()
   }
 
@@ -141,6 +142,27 @@ export function AddTaskForm({ initial, onSubmit, onClose }: AddTaskFormProps) {
           <option value="medium">Medium</option>
           <option value="low">Low</option>
         </select>
+      </div>
+
+      <div className="field">
+        <label htmlFor="t-freq">Frequency</label>
+        <select
+          id="t-freq"
+          className="select"
+          value={frequency}
+          onChange={(e) => setFrequency(e.target.value as Frequency)}
+        >
+          <option value="once">One-time</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+        {frequency !== 'once' && (
+          <div className="hint">
+            Repeats {frequency} — a fresh copy reappears each new period after you
+            complete it.
+          </div>
+        )}
       </div>
 
       {showNotes ? (

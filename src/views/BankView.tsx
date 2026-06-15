@@ -130,6 +130,10 @@ export function BankView() {
       {/* Settings — manual reset (PRD §4.2.3) */}
       <div className="section-label">Settings</div>
       <div className="card">
+        <div className="hint" style={{ marginBottom: 12 }}>
+          🔄 Your bank refills to 1h of rest time automatically at the start of each
+          day.
+        </div>
         {!resetArmed ? (
           <button className="btn ghost danger" onClick={() => setResetArmed(true)}>
             Reset Break Bank to 0

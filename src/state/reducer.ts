@@ -6,16 +6,19 @@ import {
   type AppState,
   type Task,
   type Priority,
+  type Frequency,
   type BankTransaction,
   MAX_SESSION_SECONDS,
+  DAILY_START_MINS,
 } from '../types'
-import { liveElapsedSeconds, uid } from '../utils/time'
+import { liveElapsedSeconds, uid, isSameDay } from '../utils/time'
 
 export interface NewTaskInput {
   title: string
   estimatedMins: number
   bountyMins: number
   priority: Priority
+  frequency: Frequency
   notes: string
 }
 
@@ -30,6 +33,7 @@ export type Action =
   | { type: 'COMPLETE_TASK'; id: string }
   | { type: 'REOPEN_TASK'; id: string }
   | { type: 'ARCHIVE_OLD' }
+  | { type: 'DAILY_RESET' }
   | { type: 'RESET_BANK' }
   | { type: 'START_BREAK'; requestedMins: number }
   | { type: 'END_BREAK'; actualMins: number }
@@ -45,6 +49,42 @@ function freezeStopwatch(task: Task): Task {
     liveElapsedSeconds(task.accumulatedSeconds, task.runningSince),
   )
   return { ...task, accumulatedSeconds: accumulated, runningSince: null }
+}
+
+/**
+ * Whether a completed recurring task is due to re-arm for a new period.
+ * 'once' tasks never recur (they archive on the next day instead).
+ */
+function recurDue(task: Task, ref: Date): boolean {
+  if (task.frequency === 'once' || !task.completedAt) return false
+  const completed = new Date(task.completedAt)
+  switch (task.frequency) {
+    case 'daily':
+      return !isSameDay(task.completedAt, ref)
+    case 'weekly':
+      return ref.getTime() - completed.getTime() >= 7 * 24 * 60 * 60 * 1000
+    case 'monthly': {
+      const next = new Date(completed)
+      next.setMonth(next.getMonth() + 1)
+      return ref.getTime() >= next.getTime()
+    }
+    default:
+      return false
+  }
+}
+
+/** A fresh, not-started copy of a recurring task for its next occurrence. */
+function freshRecurrence(task: Task): Task {
+  return {
+    ...task,
+    id: uid(),
+    status: 'not_started',
+    createdAt: now(),
+    completedAt: null,
+    accumulatedSeconds: 0,
+    runningSince: null,
+    bountyCredited: false,
+  }
 }
 
 function credit(
@@ -81,6 +121,7 @@ export function reducer(state: AppState, action: Action): AppState {
         estimatedMins: Math.max(0, Math.round(action.input.estimatedMins)),
         bountyMins: Math.max(0, Math.round(action.input.bountyMins)),
         priority: action.input.priority,
+        frequency: action.input.frequency,
         notes: action.input.notes,
         status: 'not_started',
         createdAt: now(),
@@ -108,6 +149,7 @@ export function reducer(state: AppState, action: Action): AppState {
               ? { bountyMins: Math.max(0, Math.round(p.bountyMins)) }
               : {}),
             ...(p.priority !== undefined ? { priority: p.priority } : {}),
+            ...(p.frequency !== undefined ? { frequency: p.frequency } : {}),
             ...(p.notes !== undefined ? { notes: p.notes } : {}),
           }
         }),
@@ -194,22 +236,44 @@ export function reducer(state: AppState, action: Action): AppState {
 
     case 'ARCHIVE_OLD': {
       const today = new Date()
-      const isToday = (iso: string | null) => {
-        if (!iso) return false
-        const d = new Date(iso)
-        return (
-          d.getFullYear() === today.getFullYear() &&
-          d.getMonth() === today.getMonth() &&
-          d.getDate() === today.getDate()
-        )
+      const out: Task[] = []
+      for (const t of state.tasks) {
+        const isStale =
+          t.status === 'complete' &&
+          t.completedAt != null &&
+          !isSameDay(t.completedAt, today)
+        if (isStale && recurDue(t, today)) {
+          // Recurring task: keep the completed instance in History (archived)
+          // and re-arm a fresh occurrence for the new period.
+          out.push({ ...t, status: 'archived' })
+          out.push(freshRecurrence(t))
+        } else if (isStale && t.frequency === 'once') {
+          out.push({ ...t, status: 'archived' })
+        } else {
+          out.push(t)
+        }
+      }
+      return { ...state, tasks: out }
+    }
+
+    case 'DAILY_RESET': {
+      // Once per calendar day, top the bank up to its starting balance so the
+      // user begins each day with a fixed allowance of rest time (PRD §4.2.3).
+      if (state.lastDailyResetAt && isSameDay(state.lastDailyResetAt)) return state
+      const tx: BankTransaction = {
+        id: uid(),
+        type: 'reset',
+        amountMins: 0,
+        taskId: null,
+        note: `Daily reset — bank set to ${DAILY_START_MINS} min (was ${state.balanceMins} min)`,
+        createdAt: now(),
       }
       return {
         ...state,
-        tasks: state.tasks.map((t) =>
-          t.status === 'complete' && !isToday(t.completedAt)
-            ? { ...t, status: 'archived' as const }
-            : t,
-        ),
+        transactions: [tx, ...state.transactions],
+        balanceMins: DAILY_START_MINS,
+        activeBreakId: null,
+        lastDailyResetAt: now(),
       }
     }
 

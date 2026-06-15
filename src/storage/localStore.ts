@@ -3,7 +3,7 @@
 // This is intentionally behind a tiny interface so that M3 can replace it
 // with a backend-backed repository without touching the rest of the app.
 
-import type { AppState } from '../types'
+import type { AppState, Task } from '../types'
 
 const STORAGE_KEY = 'bountytimer:v1'
 
@@ -13,6 +13,12 @@ export const emptyState: AppState = {
   breakSessions: [],
   balanceMins: 0,
   activeBreakId: null,
+  lastDailyResetAt: null,
+}
+
+/** Backfill fields added after a task was first persisted. */
+function normalizeTask(t: Task): Task {
+  return { ...t, frequency: t.frequency ?? 'once' }
 }
 
 export function loadState(): AppState {
@@ -24,11 +30,12 @@ export function loadState(): AppState {
     return {
       ...emptyState,
       ...parsed,
-      tasks: parsed.tasks ?? [],
+      tasks: (parsed.tasks ?? []).map(normalizeTask),
       transactions: parsed.transactions ?? [],
       breakSessions: parsed.breakSessions ?? [],
       balanceMins: parsed.balanceMins ?? 0,
       activeBreakId: parsed.activeBreakId ?? null,
+      lastDailyResetAt: parsed.lastDailyResetAt ?? null,
     }
   } catch (err) {
     console.error('Failed to load BountyTimer state, starting fresh.', err)

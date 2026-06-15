@@ -12,6 +12,13 @@ const priorityLabel: Record<Task['priority'], string> = {
   none: '',
 }
 
+const frequencyLabel: Record<Task['frequency'], string> = {
+  once: '',
+  daily: 'Daily',
+  weekly: 'Weekly',
+  monthly: 'Monthly',
+}
+
 export function TaskCard({ task }: { task: Task }) {
   const { dispatch } = useStore()
   useTick() // re-render every second so the live timer ticks
@@ -40,6 +47,9 @@ export function TaskCard({ task }: { task: Task }) {
         <span className="pill">est {formatDuration(task.estimatedMins)}</span>
         {task.priority !== 'none' && (
           <span className={`pill priority-${task.priority}`}>{priorityLabel[task.priority]}</span>
+        )}
+        {task.frequency !== 'once' && (
+          <span className="pill">🔁 {frequencyLabel[task.frequency]}</span>
         )}
         {isComplete && <span className="pill" style={{ color: 'var(--green)' }}>✓ done</span>}
       </div>
