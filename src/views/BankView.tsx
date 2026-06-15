@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../state/store'
-import { BreakTimer } from '../components/BreakTimer'
+import { useView } from '../state/view'
 import { formatBankMins, formatDuration } from '../utils/time'
 import {
   earnedTodayMins,
@@ -8,34 +8,19 @@ import {
   lastTransaction,
   activeBreak,
 } from '../state/selectors'
-import { requestNotificationPermission } from '../utils/notify'
 import { useAuth } from '../state/auth'
-import { useOnline } from '../utils/useOnline'
 import { AnimatedNumber } from '../components/AnimatedNumber'
 
-const QUICK = [5, 10, 25]
-
 export function BankView() {
-  const { state, dispatch } = useStore()
+  const { state, dispatch, devMode, setDevMode } = useStore()
+  const { setView } = useView()
   const { backendConfigured, username, logout } = useAuth()
-  const online = useOnline()
-  // Defer bank transactions while offline to prevent cross-device desync (PRD §5.4).
-  const bankLocked = backendConfigured && !online
   const onBreak = Boolean(activeBreak(state))
   const earned = earnedTodayMins(state)
   const spent = spentTodayMins(state)
   const last = lastTransaction(state)
 
-  const [custom, setCustom] = useState('')
   const [resetArmed, setResetArmed] = useState(false)
-
-  const startBreak = async (mins: number) => {
-    if (mins <= 0 || mins > state.balanceMins || bankLocked) return
-    await requestNotificationPermission()
-    dispatch({ type: 'START_BREAK', requestedMins: mins })
-  }
-
-  const customMins = Math.max(0, Math.round(parseFloat(custom) || 0))
 
   return (
     <>
@@ -66,59 +51,25 @@ export function BankView() {
       </div>
 
       {onBreak ? (
-        <BreakTimer />
-      ) : bankLocked ? (
         <div className="card">
-          <div className="hint">
-            You're offline. Starting a break is paused until you reconnect, so your
-            bank balance stays in sync across devices.
+          <div className="section-label" style={{ margin: '0 0 10px' }}>
+            Break in progress
           </div>
+          <button className="btn primary" style={{ width: '100%' }} onClick={() => setView('break')}>
+            ⏱ Open break timer
+          </button>
         </div>
       ) : state.balanceMins > 0 ? (
         <div className="card">
           <div className="section-label" style={{ margin: '0 0 10px' }}>
             Take a break
           </div>
-          <div className="btn-row">
-            {QUICK.map((m) => (
-              <button
-                key={m}
-                className="btn"
-                disabled={m > state.balanceMins}
-                onClick={() => startBreak(m)}
-              >
-                {m} min
-              </button>
-            ))}
+          <button className="btn primary" style={{ width: '100%' }} onClick={() => setView('break')}>
+            ☕ Start a break
+          </button>
+          <div className="hint" style={{ marginTop: 8 }}>
+            Enter how many minutes to spend — it counts down full-screen.
           </div>
-          <div className="inline-num" style={{ marginTop: 12 }}>
-            <input
-              className="input"
-              type="number"
-              min={1}
-              max={state.balanceMins}
-              inputMode="numeric"
-              placeholder="Custom minutes"
-              value={custom}
-              onChange={(e) => setCustom(e.target.value)}
-            />
-            <button
-              className="btn primary"
-              style={{ flex: '0 0 110px' }}
-              disabled={customMins <= 0 || customMins > state.balanceMins}
-              onClick={() => {
-                startBreak(customMins)
-                setCustom('')
-              }}
-            >
-              Start
-            </button>
-          </div>
-          {customMins > state.balanceMins && (
-            <div className="hint" style={{ marginTop: 6, color: 'var(--amber)' }}>
-              That's more than you have banked.
-            </div>
-          )}
         </div>
       ) : (
         <div className="empty">
@@ -127,7 +78,7 @@ export function BankView() {
         </div>
       )}
 
-      {/* Settings — manual reset (PRD §4.2.3) */}
+      {/* Settings — daily + manual reset (PRD §4.2.3) */}
       <div className="section-label">Settings</div>
       <div className="card">
         <div className="hint" style={{ marginBottom: 12 }}>
@@ -160,6 +111,22 @@ export function BankView() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Testing mode — sandbox that never touches the real account */}
+      <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 600 }}>🧪 Testing mode</div>
+          <div className="hint">
+            Try features in a sandbox. Your real tasks and bank stay untouched.
+          </div>
+        </div>
+        <button
+          className={devMode ? 'btn primary small' : 'btn small'}
+          onClick={() => setDevMode(!devMode)}
+        >
+          {devMode ? 'Exit' : 'Enter'}
+        </button>
       </div>
 
       {backendConfigured && (

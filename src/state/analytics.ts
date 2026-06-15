@@ -37,6 +37,60 @@ export function completedRows(state: AppState): CompletedRow[] {
     .sort((a, b) => +new Date(b.completedAt) - +new Date(a.completedAt))
 }
 
+export interface TaskGroup {
+  key: string
+  title: string
+  count: number
+  totalActualMins: number
+  totalBountyMins: number
+  avgActualMins: number
+  /** Mean absolute % deviation across the group's instances, or null. */
+  avgDeviationPct: number | null
+  lastCompletedAt: string
+  rows: CompletedRow[]
+}
+
+/**
+ * Group completed tasks that share a title into one repeating task, so the same
+ * recurring work can be analysed across all its past instances (PRD §4.4.2).
+ */
+export function taskGroups(state: AppState): TaskGroup[] {
+  const groups = new Map<string, CompletedRow[]>()
+  for (const r of completedRows(state)) {
+    const key = r.title.trim().toLowerCase()
+    const arr = groups.get(key)
+    if (arr) arr.push(r)
+    else groups.set(key, [r])
+  }
+  const out: TaskGroup[] = []
+  for (const rows of groups.values()) {
+    const count = rows.length
+    const totalActualMins = rows.reduce((s, r) => s + r.actualMins, 0)
+    const totalBountyMins = rows.reduce((s, r) => s + r.bountyMins, 0)
+    const devs = rows
+      .filter((r) => r.deviationPct !== null)
+      .map((r) => Math.abs(r.deviationPct as number))
+    out.push({
+      key: rows[0].title.trim().toLowerCase(),
+      title: rows[0].title,
+      count,
+      totalActualMins,
+      totalBountyMins,
+      avgActualMins: Math.round(totalActualMins / count),
+      avgDeviationPct: devs.length
+        ? Math.round(devs.reduce((a, b) => a + b, 0) / devs.length)
+        : null,
+      lastCompletedAt: rows.reduce(
+        (m, r) => (r.completedAt > m ? r.completedAt : m),
+        rows[0].completedAt,
+      ),
+      rows,
+    })
+  }
+  out.sort((a, b) => +new Date(b.lastCompletedAt) - +new Date(a.lastCompletedAt))
+  return out
+}
+
 function dayKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
     d.getDate(),

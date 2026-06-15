@@ -4,6 +4,7 @@ import { BarChart, GroupedBarChart, ScatterPlot } from '../components/Charts'
 import { formatHMS, formatDuration } from '../utils/time'
 import {
   completedRows,
+  taskGroups,
   todaySummary,
   lastNDays,
   focusHoursPerDay,
@@ -20,8 +21,10 @@ export function HistoryView() {
   const [to, setTo] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('date')
   const [asc, setAsc] = useState(false)
+  const [openGroup, setOpenGroup] = useState<string | null>(null)
 
   const summary = useMemo(() => todaySummary(state), [state])
+  const groups = useMemo(() => taskGroups(state), [state])
   const days = useMemo(() => lastNDays(7), [])
   const focus = useMemo(() => focusHoursPerDay(state, days), [state, days])
   const flow = useMemo(() => bankFlowPerDay(state, days), [state, days])
@@ -119,6 +122,46 @@ export function HistoryView() {
         </div>
       </div>
 
+      {/* Repeating tasks grouped by title (PRD §4.4.2) */}
+      <div className="section-label">Grouped by task</div>
+      <div className="card">
+        {groups.length === 0 ? (
+          <div className="hint" style={{ padding: '8px 0' }}>No completed tasks yet.</div>
+        ) : (
+          groups.map((g) => (
+            <div className="group" key={g.key}>
+              <button
+                className="group-head"
+                onClick={() => setOpenGroup((k) => (k === g.key ? null : g.key))}
+              >
+                <span className="group-arrow">{openGroup === g.key ? '▾' : '▸'}</span>
+                <span className="group-title" title={g.title}>{g.title}</span>
+                <span className="pill">×{g.count}</span>
+                <span className="spacer" />
+                <span className="hint">{formatDuration(g.totalActualMins)} total</span>
+              </button>
+              {openGroup === g.key && (
+                <div className="group-body">
+                  <div className="hint" style={{ marginBottom: 6 }}>
+                    Avg {formatDuration(g.avgActualMins)} per run · 🎁{' '}
+                    {formatDuration(g.totalBountyMins)} earned
+                    {g.avgDeviationPct !== null ? ` · ±${g.avgDeviationPct}% vs estimate` : ''}
+                  </div>
+                  {g.rows.map((r) => (
+                    <div className="group-instance" key={r.id}>
+                      <span>{new Date(r.completedAt).toLocaleString()}</span>
+                      <span className="hint">
+                        {formatDuration(r.actualMins)} · 🎁 {formatDuration(r.bountyMins)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
       {/* Task history log (PRD §4.4.2) */}
       <div className="section-label">Task log</div>
       <div className="card">
@@ -150,7 +193,7 @@ export function HistoryView() {
             </div>
             {rows.map((r) => (
               <div className="log-row" key={r.id}>
-                <span>{new Date(r.completedAt).toLocaleDateString()}</span>
+                <span>{new Date(r.completedAt).toLocaleString()}</span>
                 <span className="log-title" title={r.title}>{r.title}</span>
                 <span>{formatDuration(r.estimatedMins)}</span>
                 <span>{formatDuration(r.actualMins)}</span>

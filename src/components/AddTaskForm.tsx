@@ -5,6 +5,10 @@ import type { NewTaskInput } from '../state/reducer'
 
 interface AddTaskFormProps {
   initial?: Task
+  /** Pre-fill from a task but treat the result as a brand-new task (repeat). */
+  prefill?: Task
+  heading?: string
+  submitLabel?: string
   onSubmit: (input: NewTaskInput) => void
   onClose: () => void
 }
@@ -17,21 +21,30 @@ function splitMins(mins: number): { value: number; unit: Unit } {
 }
 
 /** Add / edit a task (PRD §4.1.1). Bounty defaults to the estimate, overridable. */
-export function AddTaskForm({ initial, onSubmit, onClose }: AddTaskFormProps) {
-  const est = initial ? splitMins(initial.estimatedMins) : { value: 25, unit: 'min' as Unit }
-  const [title, setTitle] = useState(initial?.title ?? '')
+export function AddTaskForm({
+  initial,
+  prefill,
+  heading,
+  submitLabel,
+  onSubmit,
+  onClose,
+}: AddTaskFormProps) {
+  // `initial` edits an existing task; `prefill` seeds a new one from a template.
+  const source = initial ?? prefill
+  const est = source ? splitMins(source.estimatedMins) : { value: 25, unit: 'min' as Unit }
+  const [title, setTitle] = useState(source?.title ?? '')
   const [estValue, setEstValue] = useState(String(est.value))
   const [estUnit, setEstUnit] = useState<Unit>(est.unit)
-  const [priority, setPriority] = useState<Priority>(initial?.priority ?? 'none')
-  const [frequency, setFrequency] = useState<Frequency>(initial?.frequency ?? 'once')
-  const [notes, setNotes] = useState(initial?.notes ?? '')
-  const [showNotes, setShowNotes] = useState(Boolean(initial?.notes))
+  const [priority, setPriority] = useState<Priority>(source?.priority ?? 'none')
+  const [frequency, setFrequency] = useState<Frequency>(source?.frequency ?? 'once')
+  const [notes, setNotes] = useState(source?.notes ?? '')
+  const [showNotes, setShowNotes] = useState(Boolean(source?.notes))
 
   // Bounty override: when off, bounty tracks the estimate.
   const initialOverride =
-    initial != null && initial.bountyMins !== initial.estimatedMins
+    source != null && source.bountyMins !== source.estimatedMins
   const [override, setOverride] = useState(initialOverride)
-  const bountyInit = initial ? splitMins(initial.bountyMins) : est
+  const bountyInit = source ? splitMins(source.bountyMins) : est
   const [bountyValue, setBountyValue] = useState(String(bountyInit.value))
   const [bountyUnit, setBountyUnit] = useState<Unit>(bountyInit.unit)
 
@@ -53,7 +66,7 @@ export function AddTaskForm({ initial, onSubmit, onClose }: AddTaskFormProps) {
 
   return (
     <Modal onClose={onClose}>
-      <h3>{initial ? 'Edit task' : 'New task'}</h3>
+      <h3>{heading ?? (initial ? 'Edit task' : 'New task')}</h3>
 
       <div className="field">
         <label htmlFor="t-title">Title</label>
@@ -184,7 +197,7 @@ export function AddTaskForm({ initial, onSubmit, onClose }: AddTaskFormProps) {
 
       <div className="btn-row" style={{ marginTop: 18 }}>
         <button className="btn primary" style={{ flex: 1 }} disabled={!canSubmit} onClick={submit}>
-          {initial ? 'Save changes' : 'Add task'}
+          {submitLabel ?? (initial ? 'Save changes' : 'Add task')}
         </button>
         <button className="btn ghost" onClick={onClose}>
           Cancel
