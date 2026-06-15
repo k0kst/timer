@@ -42,7 +42,10 @@ npm start                   # http://localhost:4000
 
 ## Deploy (ACTION REQUIRED — see repo root SETUP.md)
 
-1. Provision Postgres (Supabase free tier recommended).
+1. Provision Postgres (Supabase free tier recommended). On IPv4-only hosts
+   (Render/Railway free tiers) use Supabase's **Session pooler** connection
+   string (port 5432), not the IPv6-only direct connection — otherwise the
+   migration fails with `connect ENETUNREACH <ipv6>:5432`.
 2. Deploy via the **Render Blueprint** (`render.yaml` at the repo root):
    New → Blueprint → pick this repo. `JWT_SECRET` is auto-generated; paste your
    `DATABASE_URL` when prompted.

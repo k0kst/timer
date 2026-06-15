@@ -36,8 +36,12 @@ npm install && npm run migrate && npm start
 
 These need your accounts/credentials and external dashboards:
 
-1. **Provision a database.** Create a free Supabase project (or any Postgres).
-   Copy its connection string.
+1. **Provision a database.** Create a free Supabase project. Click **Connect**
+   and copy the **Session pooler** connection string (port 5432) — **not** the
+   "Direct connection". Render/Railway free tiers are IPv4-only, and Supabase's
+   direct host is IPv6-only, so the direct string fails with
+   `connect ENETUNREACH <ipv6>:5432`. The session pooler is IPv4-reachable.
+   Put your real DB password into the string in place of `[YOUR-PASSWORD]`.
 2. **Deploy the API.** In Render: **New → Blueprint → pick this repo** (uses
    `render.yaml`). It sets the service up automatically, **generates
    `JWT_SECRET` for you**, and prompts you to paste the `DATABASE_URL` from
