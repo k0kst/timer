@@ -28,7 +28,9 @@ export function TaskCard({ task }: { task: Task }) {
   const [confirming, setConfirming] = useState(false)
 
   const running = Boolean(task.runningSince)
-  const isComplete = task.status === 'complete'
+  // Archived tasks are completed work rolled off into History; render them with
+  // the same completed UI when they surface on the Completed tab.
+  const isComplete = task.status === 'complete' || task.status === 'archived'
   const elapsed = liveElapsedSeconds(task.accumulatedSeconds, task.runningSince)
 
   return (
