@@ -12,7 +12,7 @@ import {
   type ReactNode,
 } from 'react'
 import { reducer, type Action } from './reducer'
-import { loadState, saveState } from '../storage/localStore'
+import { loadState, saveState, STORAGE_KEY, DEV_STORAGE_KEY } from '../storage/localStore'
 import { api, ApiError } from '../api/client'
 import { useAuth } from './auth'
 import type { AppState } from '../types'
@@ -20,18 +20,23 @@ import type { AppState } from '../types'
 interface StoreContextValue {
   state: AppState
   dispatch: React.Dispatch<Action>
+  /** Testing mode: a sandbox that never persists to or syncs the real account. */
+  devMode: boolean
+  setDevMode: (on: boolean) => void
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null)
 const TickContext = createContext<number>(0)
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, undefined, loadState)
+  const [state, dispatch] = useReducer(reducer, undefined, () => loadState())
+  const [devMode, setDevModeState] = useState(false)
 
-  // Persist on every change.
+  // Persist on every change — to the sandbox key while testing, otherwise the
+  // real account. This keeps testing-mode experiments out of the user's data.
   useEffect(() => {
-    saveState(state)
-  }, [state])
+    saveState(state, devMode ? DEV_STORAGE_KEY : STORAGE_KEY)
+  }, [state, devMode])
 
   // On load: re-arm recurring tasks / archive yesterday's one-offs (PRD §4.1.2)
   // and top the Break Bank back up to its daily starting balance.
@@ -41,9 +46,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Swap between the real account and the testing sandbox. Each side keeps its
+  // own localStorage snapshot, so toggling back and forth is lossless.
+  const setDevMode = (on: boolean) => {
+    if (on === devMode) return
+    if (on) {
+      const sandbox = loadState(DEV_STORAGE_KEY)
+      setDevModeState(true)
+      dispatch({ type: 'HYDRATE', state: sandbox })
+      dispatch({ type: 'ARCHIVE_OLD' })
+      dispatch({ type: 'DAILY_RESET' })
+    } else {
+      const real = loadState(STORAGE_KEY)
+      setDevModeState(false)
+      dispatch({ type: 'HYDRATE', state: real })
+    }
+  }
+
   return (
-    <StoreContext.Provider value={{ state, dispatch }}>
-      <SyncManager state={state} dispatch={dispatch} />
+    <StoreContext.Provider value={{ state, dispatch, devMode, setDevMode }}>
+      <SyncManager state={state} dispatch={dispatch} enabled={!devMode} />
       <TickProvider>{children}</TickProvider>
     </StoreContext.Provider>
   )
@@ -57,9 +79,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 function SyncManager({
   state,
   dispatch,
+  enabled,
 }: {
   state: AppState
   dispatch: React.Dispatch<Action>
+  enabled: boolean
 }) {
   const { token } = useAuth()
   const versionRef = useRef(0)
@@ -69,10 +93,10 @@ function SyncManager({
   const stateRef = useRef(state)
   stateRef.current = state
 
-  // Pull authoritative state when a token appears.
+  // Pull authoritative state when a token appears (skipped while testing).
   useEffect(() => {
     hydratedRef.current = false
-    if (!token) return
+    if (!token || !enabled) return
     let cancelled = false
     api
       .getState(token)
@@ -86,12 +110,12 @@ function SyncManager({
     return () => {
       cancelled = true
     }
-  }, [token, dispatch])
+  }, [token, dispatch, enabled])
 
   // When the connection returns, flush the latest local state to the server
   // so edits made offline are synced (PRD §5.4 offline queue).
   useEffect(() => {
-    if (!token) return
+    if (!token || !enabled) return
     const onReconnect = async () => {
       if (!hydratedRef.current) return
       try {
@@ -103,11 +127,11 @@ function SyncManager({
     }
     window.addEventListener('online', onReconnect)
     return () => window.removeEventListener('online', onReconnect)
-  }, [token])
+  }, [token, enabled])
 
   // Push debounced after local changes (only once hydrated, to avoid clobbering).
   useEffect(() => {
-    if (!token || !hydratedRef.current) return
+    if (!token || !enabled || !hydratedRef.current) return
     if (pushTimer.current) clearTimeout(pushTimer.current)
     pushTimer.current = setTimeout(async () => {
       try {
@@ -127,7 +151,7 @@ function SyncManager({
     return () => {
       if (pushTimer.current) clearTimeout(pushTimer.current)
     }
-  }, [state, token, dispatch])
+  }, [state, token, dispatch, enabled])
 
   return null
 }

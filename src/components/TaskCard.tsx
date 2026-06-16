@@ -24,6 +24,7 @@ export function TaskCard({ task }: { task: Task }) {
   useTick() // re-render every second so the live timer ticks
   const [expanded, setExpanded] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [repeating, setRepeating] = useState(false)
   const [confirming, setConfirming] = useState(false)
 
   const running = Boolean(task.runningSince)
@@ -54,6 +55,12 @@ export function TaskCard({ task }: { task: Task }) {
         {isComplete && <span className="pill" style={{ color: 'var(--green)' }}>✓ done</span>}
       </div>
 
+      {isComplete && task.completedAt && (
+        <div className="hint" style={{ marginTop: 8 }}>
+          Completed {new Date(task.completedAt).toLocaleString()}
+        </div>
+      )}
+
       {expanded && task.notes && (
         <p style={{ color: 'var(--ink-dim)', fontSize: 14, marginTop: 10, whiteSpace: 'pre-wrap' }}>
           {task.notes}
@@ -83,11 +90,8 @@ export function TaskCard({ task }: { task: Task }) {
           </button>
         )}
         {isComplete && (
-          <button
-            className="btn ghost small"
-            onClick={() => dispatch({ type: 'REOPEN_TASK', id: task.id })}
-          >
-            ↺ Re-open
+          <button className="btn ghost small" onClick={() => setRepeating(true)}>
+            ↺ Do again
           </button>
         )}
 
@@ -116,12 +120,22 @@ export function TaskCard({ task }: { task: Task }) {
         />
       )}
 
+      {repeating && (
+        <AddTaskForm
+          prefill={task}
+          heading="Repeat task"
+          submitLabel="Add to list"
+          onClose={() => setRepeating(false)}
+          onSubmit={(input) => dispatch({ type: 'ADD_TASK', input })}
+        />
+      )}
+
       {confirming && (
         <CompleteDialog
           task={task}
           onClose={() => setConfirming(false)}
-          onConfirm={() => {
-            dispatch({ type: 'COMPLETE_TASK', id: task.id })
+          onConfirm={(finalBountyMins) => {
+            dispatch({ type: 'COMPLETE_TASK', id: task.id, finalBountyMins })
             setConfirming(false)
           }}
         />

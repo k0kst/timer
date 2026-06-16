@@ -30,8 +30,7 @@ export type Action =
   | { type: 'REORDER_TASKS'; order: string[] }
   | { type: 'START_STOPWATCH'; id: string }
   | { type: 'PAUSE_STOPWATCH'; id: string }
-  | { type: 'COMPLETE_TASK'; id: string }
-  | { type: 'REOPEN_TASK'; id: string }
+  | { type: 'COMPLETE_TASK'; id: string; finalBountyMins?: number }
   | { type: 'ARCHIVE_OLD' }
   | { type: 'DAILY_RESET' }
   | { type: 'RESET_BANK' }
@@ -199,8 +198,15 @@ export function reducer(state: AppState, action: Action): AppState {
       const task = state.tasks.find((t) => t.id === action.id)
       if (!task) return state
       const frozen = freezeStopwatch(task)
+      // The user confirms the final bounty at completion (PRD §4.1.4); fall back
+      // to the task's configured bounty when no override is supplied.
+      const finalBounty =
+        action.finalBountyMins !== undefined
+          ? Math.max(0, Math.round(action.finalBountyMins))
+          : task.bountyMins
       const completed: Task = {
         ...frozen,
+        bountyMins: finalBounty,
         status: 'complete',
         completedAt: now(),
         bountyCredited: true,
@@ -210,28 +216,10 @@ export function reducer(state: AppState, action: Action): AppState {
         tasks: state.tasks.map((t) => (t.id === action.id ? completed : t)),
       }
       // Credit the bounty only on the first completion (PRD §4.1.3).
-      if (!task.bountyCredited && completed.bountyMins > 0) {
-        next = credit(next, completed.bountyMins, completed.id, completed.title)
+      if (!task.bountyCredited && finalBounty > 0) {
+        next = credit(next, finalBounty, completed.id, completed.title)
       }
       return next
-    }
-
-    case 'REOPEN_TASK': {
-      // Re-open a completed task and resume its stopwatch. Bounty is NOT re-credited.
-      const tasks = state.tasks.map((t) => {
-        if (t.id === action.id) {
-          return {
-            ...t,
-            status: 'in_progress' as const,
-            completedAt: null,
-            runningSince: now(),
-          }
-        }
-        // Honour the single-running-stopwatch rule.
-        if (t.runningSince) return { ...freezeStopwatch(t), status: 'paused' as const }
-        return t
-      })
-      return { ...state, tasks }
     }
 
     case 'ARCHIVE_OLD': {
