@@ -22,15 +22,23 @@ export function TasksView() {
   const [dragId, setDragId] = useState<string | null>(null)
 
   const visible = useMemo(() => {
-    // Archived tasks live in History, never on the active list.
-    let list = state.tasks.filter((t) => t.status !== 'archived')
-    if (filter === 'active') list = list.filter((t) => t.status !== 'complete')
-    if (filter === 'completed') list = list.filter((t) => t.status === 'complete')
+    // The Completed tab mirrors History: it shows finished work, including
+    // older tasks that have rolled off into the archive. The other tabs keep
+    // archived tasks out of the active list.
+    let list: Task[]
+    if (filter === 'completed') {
+      list = state.tasks.filter((t) => t.status === 'complete' || t.status === 'archived')
+    } else {
+      list = state.tasks.filter((t) => t.status !== 'archived')
+      if (filter === 'active') list = list.filter((t) => t.status !== 'complete')
+    }
 
     const sorted = [...list]
     if (sort === 'priority') sorted.sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority])
     else if (sort === 'bounty') sorted.sort((a, b) => b.bountyMins - a.bountyMins)
     else if (sort === 'date') sorted.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
+    else if (filter === 'completed')
+      sorted.sort((a, b) => +new Date(b.completedAt ?? 0) - +new Date(a.completedAt ?? 0))
     return sorted
   }, [state.tasks, filter, sort])
 
